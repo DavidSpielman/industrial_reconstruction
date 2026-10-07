@@ -159,7 +159,6 @@ class ArchivePlayer(Node):
 
     def timerCallback(self):
         if self.publishing:
-            self.current_index += 1
             if (self.current_index >= self.num_imgs) and (self.looping_enabled):
                 self.current_index = 0
             if (self.current_index == self.num_imgs - 1) and (self.looping_enabled == False):
@@ -199,6 +198,8 @@ class ArchivePlayer(Node):
             image_message_depth.header.frame_id = self.pose_track_frame
             self.rgb_pub.publish(image_message_color)
             self.depth_pub.publish(image_message_depth)
+
+            self.current_index += 1
 
 
 def main(args=None):
