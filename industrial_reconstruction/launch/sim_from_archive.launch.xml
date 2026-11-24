@@ -12,6 +12,7 @@
   <arg name="cache_count" default="10"/>
   <arg name="slop" default="0.01"/>
   <arg name="rviz" default="false"/>
+  <arg name="archive_data" default="true"/>
 
   <include file="$(find-pkg-share industrial_reconstruction)/launch/archive_player.launch.xml">
     <arg name="depth_image_topic" value="$(var depth_image_topic)"/>
@@ -30,6 +31,7 @@
     <arg name="camera_info_topic" value="$(var camera_info_topic)"/>
     <arg name="cache_count" value="$(var cache_count)"/>
     <arg name="slop" value="$(var slop)"/>
+    <arg name="archive_data" value="$(var archive_data)"/>
   </include>
 
   <group if="$(var rviz)">

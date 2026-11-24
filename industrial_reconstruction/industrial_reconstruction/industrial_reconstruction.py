@@ -14,6 +14,7 @@
 
 import sys
 import rclpy
+from rclpy.duration import Duration
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, HistoryPolicy, ReliabilityPolicy, DurabilityPolicy
 from tf2_ros.buffer import Buffer
@@ -49,7 +50,7 @@ class IndustrialReconstruction(Node):
 
         self.bridge = CvBridge()
 
-        self.buffer = Buffer()
+        self.buffer = Buffer(cache_time=Duration(seconds=10 * 20))
         self.tf_listener = TransformListener(buffer=self.buffer, node=self)
 
         self.tsdf_volume = None
@@ -96,6 +97,7 @@ class IndustrialReconstruction(Node):
         self.declare_parameter("camera_info_topic")
         self.declare_parameter("cache_count", 10)
         self.declare_parameter("slop", 0.01)
+        self.declare_parameter("archive_data", True)
 
         try:
             self.depth_image_topic = str(self.get_parameter('depth_image_topic').value)
@@ -117,6 +119,10 @@ class IndustrialReconstruction(Node):
             self.slop = float(self.get_parameter('slop').value)
         except:
             self.get_logger().info("Failed to load slop parameter")
+        try:
+            self.archive_data = self.get_parameter('archive_data').value
+        except:
+            self.get_logger().info("Failed to load archive_data parameter")
         allow_headerless = False
 
         self.get_logger().info("depth_image_topic - " + self.depth_image_topic)
@@ -288,11 +294,14 @@ class IndustrialReconstruction(Node):
         self.mesh_pub.publish(mesh_msg)
         self.get_logger().info("Mesh Saved to " + req.mesh_filepath)
 
-        if (req.archive_directory != ""):
+        if (req.archive_directory != "" and self.archive_data):
             self.get_logger().info("Archiving data to " + req.archive_directory)
             self.archiveData(req.archive_directory)
             archive_mesh_filepath = join(req.archive_directory, "integrated.ply")
             o3d.io.write_triangle_mesh(archive_mesh_filepath, mesh, False, True)
+
+        if (req.archive_directory != "" and self.archive_data == False):
+            self.get_logger().warning("Archive data parameter set False but archive directory is not empty. To archive data, set the archive_data parameter True")
 
         self.get_logger().info("DONE")
         res.success = True
@@ -335,9 +344,11 @@ class IndustrialReconstruction(Node):
                         rgb_pose[1, 3] = rgb_t[1]
                         rgb_pose[2, 3] = rgb_t[2]
 
-                        self.depth_images.append(data[0])
-                        self.color_images.append(data[1])
-                        self.rgb_poses.append(rgb_pose)
+                        if self.archive_data:
+                            self.depth_images.append(data[0])
+                            self.color_images.append(data[1])
+                            self.rgb_poses.append(rgb_pose)
+
                         if self.live_integration and self.tsdf_volume is not None:
                             self.integration_done = False
                             try:
